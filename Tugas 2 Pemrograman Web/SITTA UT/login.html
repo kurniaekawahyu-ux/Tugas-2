@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistem Pemesanan Bahan Ajar UT</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .login-title {
+            color: #333;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .input-with-icon input {
+            padding-left: 45px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-error {
+            background-color: #fce8e6;
+            color: #c5221f;
+            border-color: #ea4335;
+        }
+
+        .alert-success {
+            background-color: #e6f4ea;
+            color: #137333;
+            border-color: #34a853;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .shape-1 {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            right: 10%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shape-2 {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 10%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .shape-3 {
+            width: 40px;
+            height: 40px;
+            top: 50%;
+            left: 5%;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="img/ut.png"></i>
+                </div>
+                <h1 class="login-title">Selamat Datang</h1>
+                <p class="login-subtitle">SITTA</p>
+            </div>
+
+            <div id="app">
+                <form @submit.prevent="handleLogin">
+                    <div class="alert alert-error" v-if="errorMessage">
+                        <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+                    </div>
+
+                    <div class="alert alert-success" v-if="successMessage">
+                        <i class="fas fa-check-circle"></i> {{ successMessage }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                v-model="form.email" 
+                                placeholder="Masukkan email Anda"
+                                required
+                                @input="clearMessages"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                :type="showPassword ? 'text' : 'password'" 
+                                id="password" 
+                                v-model="form.password" 
+                                placeholder="Masukkan password Anda"
+                                required
+                                @input="clearMessages"
+                            >
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; color: #666; cursor: pointer;">
+                                <input type="checkbox" v-model="showPassword" style="width: auto;">
+                                Tampilkan Password
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="forgot-password">
+                        <a href="#" @click.prevent="showForgotPassword">Lupa Password?</a>
+                    </div>
+
+                    <button type="submit" class="login-btn" :disabled="loading">
+                        <span v-if="!loading">
+                            <i class="fas fa-sign-in-alt"></i> Masuk
+                        </span>
+                        <span v-else>
+                            <i class="fas fa-spinner fa-spin"></i> Memproses...
+                        </span>
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p>Belum punya akun? <a href="#" @click.prevent="showRegister" style="color: #667eea;">Hubungi Administrator</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                form: {
+                    email: '',
+                    password: ''
+                },
+                showPassword: false,
+                loading: false,
+                errorMessage: '',
+                successMessage: ''
+            },
+            methods: {
+                async handleLogin() {
+                    this.loading = true;
+                    this.errorMessage = '';
+                    this.successMessage = '';
+
+                    // Validasi input
+                    if (!this.form.email || !this.form.password) {
+                        this.errorMessage = 'Harap isi email dan password!';
+                        this.loading = false;
+                        return;
+                    }
+
+                    // Simulasi proses login
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Cari pengguna berdasarkan email dan password
+                    const user = dataPengguna.find(u => 
+                        u.email === this.form.email && u.password === this.form.password
+                    );
+
+                    if (user) {
+                        // Login berhasil
+                        this.successMessage = `Login berhasil! Selamat datang ${user.nama}`;
+                        
+                        // Simpan data user ke localStorage
+                        localStorage.setItem('isLoggedIn', 'true');
+                        localStorage.setItem('user', JSON.stringify({
+                            id: user.id,
+                            nama: user.nama,
+                            email: user.email,
+                            role: user.role,
+                            lokasi: user.lokasi,
+                            loginTime: new Date().toISOString()
+                        }));
+
+                        // Redirect ke dashboard setelah 1.5 detik
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1500);
+                    } else {
+                        this.errorMessage = 'Email atau password salah!';
+                    }
+
+                    this.loading = false;
+                },
+
+                clearMessages() {
+                    this.errorMessage = '';
+                    this.successMessage = '';
+                },
+
+                showForgotPassword() {
+                    alert('Jika Anda lupa password, silakan hubungi Administrator Sistem di:\n\nEmail: admin@ut.ac.id\nTelepon: (021) 1234-5678');
+                },
+
+                showRegister() {
+                    alert('Untuk pendaftaran akun baru, silakan hubungi Administrator Sistem di:\n\nEmail: admin@ut.ac.id\nTelepon: (021) 1234-5678');
+                }
+            },
+            
+            mounted() {
+                // Cek jika sudah login
+                const isLoggedIn = localStorage.getItem('isLoggedIn');
+                if (isLoggedIn) {
+                    window.location.href = 'dashboard.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stok Bahan Ajar - UT</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-graduation-cap fa-2x"></i>
+                <h1>Sistem Pemesanan Bahan Ajar - UT</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Beranda</a></li>
+                    <li><a href="stok.html" class="active"><i class="fas fa-boxes"></i> Stok Bahan Ajar</a></li>
+                    <li><a href="tracking.html"><i class="fas fa-shipping-fast"></i> Tracking DO</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" id="app">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-boxes"></i> Informasi Stok Bahan Ajar</h2>
+                <button class="btn btn-primary" @click="showAddForm">
+                    <i class="fas fa-plus"></i> Tambah Bahan Ajar
+                </button>
+            </div>
+
+            <div class="main-container">
+                <!-- Sidebar Filter -->
+                <div class="sidebar">
+                    <h3 class="section-title">Filter</h3>
+                    
+                    <div class="form-group">
+                        <label for="filter-upbjj">Pilih UPBJJ</label>
+                        <select id="filter-upbjj" v-model="filters.upbjj" @change="updateKategoriOptions">
+                            <option value="">Semua UPBJJ</option>
+                            <option v-for="upbjj in upbjjList" :value="upbjj">{{ upbjj }}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="filter-kategori">Kategori Mata Kuliah</label>
+                        <select id="filter-kategori" v-model="filters.kategori">
+                            <option value="">Semua Kategori</option>
+                            <option v-for="kategori in filteredKategoriList" :value="kategori">{{ kategori }}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sort-by">Urutkan berdasarkan</label>
+                        <select id="sort-by" v-model="sortBy">
+                            <option value="judul">Judul</option>
+                            <option value="qty">Jumlah Stok</option>
+                            <option value="upbjj">UPBJJ</option>
+                            <option value="harga">Harga</option>
+                        </select>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <!-- Filter Status Stok -->
+                    <div class="form-group">
+                        <label>Status Stok</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" v-model="filters.stokMenipis">
+                                <span class="status status-menipis">
+                                    <i class="fas fa-exclamation-triangle status-icon"></i> Stok Menipis
+                                </span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" v-model="filters.stokKosong">
+                                <span class="status status-kosong">
+                                    <i class="fas fa-times-circle status-icon"></i> Stok Kosong
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-actions">
+                        <button class="btn btn-outline" @click="resetFilters" style="width: 100%;">
+                            <i class="fas fa-redo"></i> Reset Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Konten Utama -->
+                <div class="content">
+                    <!-- Informasi Ringkas -->
+                    <div class="stats-grid">
+                        <div class="stat-card total">
+                            <i class="fas fa-box stat-icon" style="color: #34a853;"></i>
+                            <div class="stat-value">{{ totalStok }}</div>
+                            <div class="stat-label">Total Stok</div>
+                        </div>
+                        <div class="stat-card menipis">
+                            <i class="fas fa-exclamation-triangle stat-icon" style="color: #fbbc05;"></i>
+                            <div class="stat-value">{{ stokMenipisCount }}</div>
+                            <div class="stat-label">Stok Menipis</div>
+                        </div>
+                        <div class="stat-card kosong">
+                            <i class="fas fa-times-circle stat-icon" style="color: #ea4335;"></i>
+                            <div class="stat-value">{{ stokKosongCount }}</div>
+                            <div class="stat-label">Stok Kosong</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Stok -->
+                    <div class="table-container">
+                        <table class="table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Judul</th>
+                                    <th>Kategori</th>
+                                    <th>UPBJJ</th>
+                                    <th>Lokasi Rak</th>
+                                    <th>Harga</th>
+                                    <th>Jumlah</th>
+                                    <th>Safety</th>
+                                    <th>Status</th>
+                                    <th>Catatan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in filteredAndSortedData" :key="item.kode">
+                                    <td><strong>{{ item.kode }}</strong></td>
+                                    <td>{{ item.judul }}</td>
+                                    <td>{{ item.kategori }}</td>
+                                    <td>{{ item.upbjj }}</td>
+                                    <td>{{ item.lokasiRak }}</td>
+                                    <td>Rp {{ formatCurrency(item.harga) }}</td>
+                                    <td>{{ item.qty }}</td>
+                                    <td>{{ item.safety }}</td>
+                                    <td>
+                                        <span class="status" :class="getStatusClass(item)">
+                                            <i :class="getStatusIcon(item) + ' status-icon'"></i>
+                                            {{ getStatusText(item) }}
+                                        </span>
+                                    </td>
+                                    <td v-html="item.catatanHTML"></td>
+                                    <td>
+                                        <button class="btn btn-outline btn-sm" @click="editItem(item)" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredAndSortedData.length === 0">
+                                    <td colspan="11" class="empty-state">
+                                        <i class="fas fa-search fa-2x"></i>
+                                        <h3>Tidak ada data yang sesuai dengan filter</h3>
+                                        <p>Coba ubah pengaturan filter atau reset filter</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top: 15px; text-align: center; color: #5f6368;">
+                        Menampilkan {{ filteredAndSortedData.length }} dari {{ stok.length }} bahan ajar
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Tambah/Edit Bahan Ajar -->
+        <div class="modal" :class="{ show: showModal }">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas" :class="isEditing ? 'fa-edit' : 'fa-plus'"></i>
+                        {{ isEditing ? 'Edit' : 'Tambah' }} Bahan Ajar
+                    </h3>
+                    <button class="modal-close" @click="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="saveItem">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="kode">Kode Mata Kuliah *</label>
+                                <input type="text" id="kode" v-model="formData.kode" required :readonly="isEditing">
+                                <small style="color: #666; font-size: 0.8rem;">* Kode tidak dapat diubah saat edit</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="judul">Judul Mata Kuliah *</label>
+                                <input type="text" id="judul" v-model="formData.judul" required>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="kategori">Kategori Mata Kuliah *</label>
+                                <select id="kategori" v-model="formData.kategori" required>
+                                    <option value="">Pilih Kategori</option>
+                                    <option v-for="kategori in kategoriList" :value="kategori">{{ kategori }}</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="upbjj">UPBJJ *</label>
+                                <select id="upbjj" v-model="formData.upbjj" required>
+                                    <option value="">Pilih UPBJJ</option>
+                                    <option v-for="upbjj in upbjjList" :value="upbjj">{{ upbjj }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="lokasiRak">Lokasi Rak *</label>
+                                <input type="text" id="lokasiRak" v-model="formData.lokasiRak" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="harga">Harga *</label>
+                                <input type="number" id="harga" v-model="formData.harga" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="qty">Jumlah Stok *</label>
+                                <input type="number" id="qty" v-model="formData.qty" min="0" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="safety">Safety Stock *</label>
+                                <input type="number" id="safety" v-model="formData.safety" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="catatanHTML">Catatan</label>
+                            <textarea id="catatanHTML" v-model="formData.catatanHTML" rows="3" placeholder="Masukkan catatan..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-success" v-if="showSuccessMessage">
+                            <i class="fas fa-check-circle"></i> Data berhasil disimpan!
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @click="closeModal">Batal</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dataBahanAjar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="js/stok-app.js"></script>
+  <!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+<script>
+    // Cek apakah user sudah login
+    function checkAuth() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (!isLoggedIn) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Update UI dengan info user
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userNameElement = document.getElementById('userName');
+        const userRoleElement = document.getElementById('userRole');
+        
+        if (userNameElement) userNameElement.textContent = user.nama || 'User';
+        if (userRoleElement) userRoleElement.textContent = user.role || 'User';
+
+        // Simpan nama user untuk greeting
+        localStorage.setItem('namaUser', user.nama || 'User');
+    }
+
+    // Logout function sesuai script Anda
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            Swal.fire({
+                title: 'Yakin ingin logout?',
+                text: 'Anda akan keluar dari sistem.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Logout',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#ea4335',
+                cancelButtonColor: '#5f6368'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('namaUser');
+                    localStorage.removeItem('isLoggedIn');
+                    localStorage.removeItem('user');
+                    Swal.fire({
+                        title: 'Logout Berhasil',
+                        text: 'Anda telah keluar dari sistem.',
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#1a73e8'
+                    }).then(() => window.location.href = 'login.html');
+                }
+            });
+        });
+    }
+
+    // Inisialisasi
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+    });
+</script>  
+</body>
+</html>

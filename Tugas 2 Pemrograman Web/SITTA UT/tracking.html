@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking DO - UT</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-graduation-cap fa-2x"></i>
+                <h1>Sistem Pemesanan Bahan Ajar - UT</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Beranda</a></li>
+                    <li><a href="stok.html"><i class="fas fa-boxes"></i> Stok Bahan Ajar</a></li>
+                    <li><a href="tracking.html" class="active"><i class="fas fa-shipping-fast"></i> Tracking DO</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" id="app">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-shipping-fast"></i> Tracking Delivery Order</h2>
+                <button class="btn btn-primary" @click="showAddForm">
+                    <i class="fas fa-plus"></i> Tambah DO Baru
+                </button>
+            </div>
+
+            <!-- Daftar DO -->
+            <div class="table-container">
+                <table class="table-bordered">
+                    <thead>
+                        <tr>
+                            <th>No. DO</th>
+                            <th>NIM</th>
+                            <th>Nama</th>
+                            <th>Ekspedisi</th>
+                            <th>Paket Bahan Ajar</th>
+                            <th>Tanggal Kirim</th>
+                            <th>Total Harga</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="doItem in deliveryOrders" :key="doItem.noDO">
+                            <td><span class="badge badge-primary">{{ doItem.noDO }}</span></td>
+                            <td>{{ doItem.nim }}</td>
+                            <td>{{ doItem.nama }}</td>
+                            <td>{{ doItem.ekspedisi }}</td>
+                            <td>
+                                <div><strong>{{ doItem.paket.kode }}</strong></div>
+                                <div>{{ doItem.paket.nama }}</div>
+                            </td>
+                            <td>{{ formatDate(doItem.tanggalKirim) }}</td>
+                            <td>Rp {{ formatCurrency(doItem.totalHarga) }}</td>
+                            <td>
+                                <span class="status status-aman">
+                                    <i class="fas fa-shipping-fast status-icon"></i>
+                                    {{ doItem.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" @click="viewDetails(doItem)">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                        <tr v-if="deliveryOrders.length === 0">
+                            <td colspan="9" class="empty-state">
+                                <i class="fas fa-box-open fa-2x"></i>
+                                <h3>Belum ada Delivery Order</h3>
+                                <p>Tambahkan DO baru untuk memulai tracking</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: center; color: #5f6368;">
+                Menampilkan {{ deliveryOrders.length }} delivery order
+            </div>
+        </div>
+
+        <!-- Modal Tambah DO Baru -->
+        <div class="modal" :class="{ show: showModal }">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas fa-plus"></i> Tambah Delivery Order Baru
+                    </h3>
+                    <button class="modal-close" @click="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="saveDO">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="nim">NIM *</label>
+                                <input type="text" id="nim" v-model="formData.nim" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="nama">Nama *</label>
+                                <input type="text" id="nama" v-model="formData.nama" required>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="ekspedisi">Ekspedisi *</label>
+                                <select id="ekspedisi" v-model="formData.ekspedisi" required>
+                                    <option value="">Pilih Ekspedisi</option>
+                                    <option v-for="pengiriman in pengirimanList" :value="pengiriman.nama">{{ pengiriman.nama }}</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="paket">Paket Bahan Ajar *</label>
+                                <select id="paket" v-model="formData.paketKode" @change="updatePaketDetails" required>
+                                    <option value="">Pilih Paket</option>
+                                    <option v-for="p in paket" :value="p.kode">{{ p.kode }} - {{ p.nama }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Detail Paket yang Dipilih -->
+                        <div v-if="selectedPaket" class="card" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa;">
+                            <h4 style="margin-bottom: 10px; color: #1a73e8;">Detail Paket: {{ selectedPaket.nama }}</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div><strong>Kode:</strong> {{ selectedPaket.kode }}</div>
+                                <div><strong>Harga:</strong> Rp {{ formatCurrency(selectedPaket.harga) }}</div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <strong>Isi Paket:</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li v-for="kodeMk in selectedPaket.isi" :key="kodeMk">
+                                        {{ kodeMk }} - {{ getMataKuliahName(kodeMk) }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tanggalKirim">Tanggal Kirim *</label>
+                            <input type="date" id="tanggalKirim" v-model="formData.tanggalKirim" required>
+                        </div>
+                        
+                        <div class="alert alert-success" v-if="showSuccessMessage">
+                            <i class="fas fa-check-circle"></i> DO berhasil ditambahkan!
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @click="closeModal">Batal</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan DO
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Detail DO -->
+        <div class="modal" :class="{ show: showDetailModal }">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas fa-eye"></i> Detail Delivery Order
+                    </h3>
+                    <button class="modal-close" @click="closeDetailModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="selectedDO" class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px; color: #1a73e8;">Informasi DO</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div><strong>No. DO:</strong> {{ selectedDO.noDO }}</div>
+                            <div><strong>Status:</strong> 
+                                <span class="status status-aman">{{ selectedDO.status }}</span>
+                            </div>
+                            <div><strong>NIM:</strong> {{ selectedDO.nim }}</div>
+                            <div><strong>Nama:</strong> {{ selectedDO.nama }}</div>
+                            <div><strong>Ekspedisi:</strong> {{ selectedDO.ekspedisi }}</div>
+                            <div><strong>Tanggal Kirim:</strong> {{ formatDate(selectedDO.tanggalKirim) }}</div>
+                            <div><strong>Total Harga:</strong> Rp {{ formatCurrency(selectedDO.totalHarga) }}</div>
+                        </div>
+                    </div>
+
+                    <div v-if="selectedDO" class="card">
+                        <h4 style="margin-bottom: 15px; color: #1a73e8;">Detail Paket</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div><strong>Kode Paket:</strong> {{ selectedDO.paket.kode }}</div>
+                            <div><strong>Nama Paket:</strong> {{ selectedDO.paket.nama }}</div>
+                            <div><strong>Harga Paket:</strong> Rp {{ formatCurrency(selectedDO.paket.harga) }}</div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <strong>Mata Kuliah dalam Paket:</strong>
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li v-for="kodeMk in selectedDO.paket.isi" :key="kodeMk">
+                                    <strong>{{ kodeMk }}</strong> - {{ getMataKuliahName(kodeMk) }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div v-if="selectedDO && selectedDO.perjalanan" class="card">
+                        <h4 style="margin-bottom: 15px; color: #1a73e8;">Riwayat Pengiriman</h4>
+                        <div class="timeline">
+                            <div v-for="(step, index) in selectedDO.perjalanan" :key="index" class="timeline-item">
+                                <div class="timeline-time">{{ step.waktu }}</div>
+                                <div class="timeline-desc">{{ step.keterangan }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeDetailModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dataBahanAjar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="js/tracking-app.js"></script>
+    <!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+<script>
+    // Cek apakah user sudah login
+    function checkAuth() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (!isLoggedIn) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Update UI dengan info user
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userNameElement = document.getElementById('userName');
+        const userRoleElement = document.getElementById('userRole');
+        
+        if (userNameElement) userNameElement.textContent = user.nama || 'User';
+        if (userRoleElement) userRoleElement.textContent = user.role || 'User';
+
+        // Simpan nama user untuk greeting
+        localStorage.setItem('namaUser', user.nama || 'User');
+    }
+
+    // Logout function sesuai script Anda
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            Swal.fire({
+                title: 'Yakin ingin logout?',
+                text: 'Anda akan keluar dari sistem.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Logout',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#ea4335',
+                cancelButtonColor: '#5f6368'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('namaUser');
+                    localStorage.removeItem('isLoggedIn');
+                    localStorage.removeItem('user');
+                    Swal.fire({
+                        title: 'Logout Berhasil',
+                        text: 'Anda telah keluar dari sistem.',
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#1a73e8'
+                    }).then(() => window.location.href = 'login.html');
+                }
+            });
+        });
+    }
+
+    // Inisialisasi
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+    });
+</script>
+</body>
+</html>
